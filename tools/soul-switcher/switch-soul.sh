@@ -7,6 +7,7 @@ set -e
 # 配置路径
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/config.yaml"
+SOULS_DIR="$SCRIPT_DIR/souls"
 OPENCLAW_CONFIG_DIR="${HOME}/.config/openclaw"
 SOUL_TARGET="$OPENCLAW_CONFIG_DIR/soul.md"
 LOG_FILE="$OPENCLAW_CONFIG_DIR/soul-switcher.log"
@@ -16,7 +17,8 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+MAGENTA='\033[0;35m'
+NC='\033[0m'
 
 # 日志函数
 log() {
@@ -28,79 +30,54 @@ get_today_weekday() {
     date +%w
 }
 
-# 从配置中获取今天的 Soul
-get_today_soul() {
-    local weekday=$(get_today_weekday)
-    local soul_info
-    
-    # 使用 yq 或手动解析 yaml
-    if command -v yq &> /dev/null; then
-        soul_info=$(yq eval ".souls_pool[] | select(.weekday == $weekday)" "$CONFIG_FILE" 2>/dev/null)
-    else
-        # 简单的 grep 解析（备用方案）
-        soul_info=$(awk "/weekday: $weekday/{getline; print}" "$CONFIG_FILE")
-    fi
-    
-    echo "$soul_info"
+# 获取 Soul 数量
+get_souls_count() {
+    ls -1 "$SOULS_DIR"/*.md 2>/dev/null | wc -l
 }
 
-# 获取 Soul 文件路径
+# 从配置中获取信息（支持 yq 和手动解析）
+get_soul_info() {
+    local field="$1"
+    local weekday="$2"
+
+    if command -v yq &> /dev/null; then
+        yq eval ".souls_pool[] | select(.weekday == $weekday) | .$field" "$CONFIG_FILE" 2>/dev/null | tr -d '"'
+    else
+        # 手动解析 yaml
+        awk "/weekday: $weekday/{flag=1} flag && /$field:/{print \$2; exit}" "$CONFIG_FILE" | tr -d '"'
+    fi
+}
+
+# 获取 Soul 文件路径（转换为绝对路径）
 get_soul_file() {
     local weekday=$1
-    local soul_file
-    
-    # 从配置中读取文件路径
-    if command -v yq &> /dev/null; then
-        soul_file=$(yq eval ".souls_pool[] | select(.weekday == $weekday) | .file" "$CONFIG_FILE" 2>/dev/null)
-    else
-        # 手动解析：查找 weekday 对应的 file
-        soul_file=$(awk "/weekday: $weekday/{flag=1} flag && /file:/{print \$2; exit}" "$CONFIG_FILE" | tr -d '"')
-    fi
-    
-    # 展开路径中的 ~
-    eval echo "$soul_file"
+    local filename=$(get_soul_info "file" "$weekday")
+    # 转换为绝对路径
+    echo "$SOULS_DIR/$(basename "$filename")"
 }
 
 # 获取 Soul 名称
 get_soul_name() {
     local weekday=$1
-    local soul_name
-    
-    if command -v yq &> /dev/null; then
-        soul_name=$(yq eval ".souls_pool[] | select(.weekday == $weekday) | .name" "$CONFIG_FILE" 2>/dev/null)
-    else
-        soul_name=$(awk "/weekday: $weekday/{flag=1} flag && /name:/{print \$2; exit}" "$CONFIG_FILE" | tr -d '"')
-    fi
-    
-    echo "$soul_name"
+    get_soul_info "name" "$weekday"
 }
 
 # 获取 Soul 描述
 get_soul_description() {
     local weekday=$1
-    local description
-    
-    if command -v yq &> /dev/null; then
-        description=$(yq eval ".souls_pool[] | select(.weekday == $weekday) | .description" "$CONFIG_FILE" 2>/dev/null)
-    else
-        description=$(awk "/weekday: $weekday/{flag=1} flag && /description:/{print substr(\$0, index(\$0,\$2)); exit}" "$CONFIG_FILE" | tr -d '"')
-    fi
-    
-    echo "$description"
+    get_soul_info "description" "$weekday"
 }
 
 # 获取 Soul 图标
 get_soul_icon() {
     local weekday=$1
-    local icon
-    
-    if command -v yq &> /dev/null; then
-        icon=$(yq eval ".souls_pool[] | select(.weekday == $weekday) | .icon" "$CONFIG_FILE" 2>/dev/null)
-    else
-        icon=$(awk "/weekday: $weekday/{flag=1} flag && /icon:/{print \$2; exit}" "$CONFIG_FILE" | tr -d '"')
-    fi
-    
-    echo "$icon"
+    get_soul_info "icon" "$weekday"
+}
+
+# 保存当前 Soul 索引
+save_current_index() {
+    local index=$1
+    echo "$index" > "$SCRIPT_DIR/.current_soul"
 }
 
 # 执行 Soul 切换
@@ -109,27 +86,33 @@ switch_soul() {
     local soul_file=$(get_soul_file $weekday)
     local soul_name=$(get_soul_name $weekday)
     local soul_icon=$(get_soul_icon $weekday)
-    
+
     log "${BLUE}开始切换 Soul...${NC}"
     log "今天是星期 $weekday，今日 Soul: $soul_name"
-    
+
     # 检查源文件是否存在
     if [[ ! -f "$soul_file" ]]; then
         log "${RED}错误: Soul 文件不存在: $soul_file${NC}"
-        log "请确保已将 Soul 文件复制到 ~/.config/openclaw/souls/"
         exit 1
     fi
-    
+
+    # 确保 OpenClaw 配置目录存在
+    mkdir -p "$OPENCLAW_CONFIG_DIR"
+
     # 备份当前 Soul
     if [[ -f "$SOUL_TARGET" ]]; then
         cp "$SOUL_TARGET" "$SOUL_TARGET.backup.$(date +%Y%m%d)"
         log "已备份当前 Soul"
     fi
-    
+
     # 复制新 Soul
     cp "$soul_file" "$SOUL_TARGET"
+
+    # 保存当前索引
+    save_current_index "$weekday"
+
     log "${GREEN}✓ Soul 已切换为: $soul_name $soul_icon${NC}"
-    
+
     # 发送问候语
     send_greeting $weekday
 }
@@ -141,29 +124,29 @@ send_greeting() {
     local soul_description=$(get_soul_description $weekday)
     local soul_icon=$(get_soul_icon $weekday)
     local greeting_file="$SCRIPT_DIR/greetings/$(echo $soul_name | tr '[:upper:]' '[:lower:]' | tr ' ' '-')-greeting.md"
-    
+
     log "准备发送问候语..."
-    
+
+    echo ""
+    echo "═══════════════════════════════════════════════════"
+    echo "  🎭 百变马丁 - 今日 Soul 已切换"
+    echo "═══════════════════════════════════════════════════"
+    echo ""
+    echo -e "${MAGENTA}今日人格: $soul_icon $soul_name ${NC}"
+    echo ""
+
     # 检查是否有自定义问候语文件
     if [[ -f "$greeting_file" ]]; then
-        # 使用自定义问候语
-        local greeting=$(cat "$greeting_file")
+        cat "$greeting_file"
         log "使用自定义问候语"
     else
         # 使用默认问候语模板
-        local greeting=$(generate_default_greeting "$soul_name" "$soul_description" "$soul_icon")
+        generate_default_greeting "$soul_name" "$soul_description" "$soul_icon"
     fi
-    
-    # 输出问候语（OpenClaw 会捕获这个输出）
+
     echo ""
-    echo "═══════════════════════════════════════"
-    echo "  🎭 百变马丁 - 今日 Soul 已切换"
-    echo "═══════════════════════════════════════"
-    echo ""
-    echo -e "$greeting"
-    echo ""
-    echo "═══════════════════════════════════════"
-    
+    echo "═══════════════════════════════════════════════════"
+
     log "问候语已发送"
 }
 
@@ -175,9 +158,9 @@ generate_default_greeting() {
     local weekday=$(get_today_weekday)
     local weeknames=("周日" "周一" "周二" "周三" "周四" "周五" "周六")
     local weekname=${weeknames[$weekday]}
-    
+
     cat << EOF
-${icon} 早上好！今天是 ${weekname}，我是 **${name}**！
+🌟 早上好！今天是 ${weekname}，我是 **${name}**！
 
 ${description}
 
@@ -193,27 +176,27 @@ preview_mode() {
     local weekday=$(get_today_weekday)
     local weeknames=("周日" "周一" "周二" "周三" "周四" "周五" "周六")
     local weekname=${weeknames[$weekday]}
-    
+
     echo ""
-    echo "🎭 Soul Switcher - 预览模式"
-    echo "═══════════════════════════════════════"
+    echo "🎭 Soul Switcher - 本周 Soul 安排"
+    echo "═══════════════════════════════════════════════════"
     echo ""
     echo "今天是: ${weekname} (星期 $weekday)"
     echo ""
-    
+
     # 显示本周 Soul 安排
-    echo "本周 Soul 安排:"
-    echo "───────────────────────────────────────"
+    echo "本周 Soul 轮换表:"
+    echo "───────────────────────────────────────────────────"
     for i in {0..6}; do
         local name=$(get_soul_name $i)
         local icon=$(get_soul_icon $i)
         local desc=$(get_soul_description $i)
         local marker=""
-        [[ $i -eq $weekday ]] && marker=" <-- 今天"
-        echo "$icon ${weeknames[$i]}: $name - $desc$marker"
+        [[ $i -eq $weekday ]] && marker=" ← 今天"
+        printf "  %s %s: %-10s %s%s\n" "$icon" "${weeknames[$i]}" "$name" "$desc" "$marker"
     done
     echo ""
-    echo "═══════════════════════════════════════"
+    echo "═══════════════════════════════════════════════════"
 }
 
 # 显示帮助
@@ -242,22 +225,24 @@ EOF
 force_switch() {
     local target_name=$1
     log "强制切换到: $target_name"
-    
+
     # 在配置中查找 Soul
     local soul_file=""
     local soul_desc=""
     local soul_icon=""
-    
+    local target_weekday=""
+
     for i in {0..6}; do
         local name=$(get_soul_name $i)
         if [[ "$name" == *"$target_name"* ]]; then
             soul_file=$(get_soul_file $i)
             soul_desc=$(get_soul_description $i)
             soul_icon=$(get_soul_icon $i)
+            target_weekday=$i
             break
         fi
     done
-    
+
     if [[ -z "$soul_file" ]]; then
         log "${RED}错误: 找不到 Soul '$target_name'${NC}"
         log "可用的 Soul:"
@@ -266,13 +251,15 @@ force_switch() {
         done
         exit 1
     fi
-    
+
     # 执行切换
+    mkdir -p "$OPENCLAW_CONFIG_DIR"
     cp "$soul_file" "$SOUL_TARGET"
+    save_current_index "$target_weekday"
     log "${GREEN}✓ 已强制切换为: $target_name $soul_icon${NC}"
-    
+
     # 发送问候语
-    send_greeting $(get_today_weekday)
+    send_greeting $target_weekday
 }
 
 # 主函数
@@ -292,7 +279,9 @@ main() {
             # 切换但不发送问候语
             local weekday=$(get_today_weekday)
             local soul_file=$(get_soul_file $weekday)
+            mkdir -p "$OPENCLAW_CONFIG_DIR"
             cp "$soul_file" "$SOUL_TARGET"
+            save_current_index "$weekday"
             log "${GREEN}✓ Soul 已切换（无问候）${NC}"
             ;;
         --help|-h)

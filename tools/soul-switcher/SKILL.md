@@ -6,11 +6,12 @@
 
 ## ✨ 功能特性
 
-- ⏰ **定时切换**：每天早上 10:15 自动执行
-- 🎭 **风格轮换**：7 个 Soul 循环，每天都有新体验
-- 💬 **自动问候**：切换后用新 Soul 的风格主动问早
-- 📅 **智能提醒**：告知今日是什么风格，有什么特点
-- 🔄 **无缝衔接**：自动重启 OpenClaw 应用新 Soul
+- 🎮 **交互式 CLI** - 支持命令行直接操作
+- ⏰ **定时切换** - 每天早上 10:15 自动执行
+- 🎭 **风格轮换** - 7 个 Soul 循环，每天都有新体验
+- 💬 **自动问候** - 切换后用新 Soul 的风格主动问早
+- 📅 **智能提醒** - 告知今日是什么风格，有什么特点
+- 🔄 **无缝衔接** - 自动应用新 Soul 到 OpenClaw
 
 ---
 
@@ -18,187 +19,329 @@
 
 ```
 soul-switcher/
-├── SKILL.md              # 本文件
-├── switch-soul.sh        # 切换脚本
+├── soul-switcher         # 主控 CLI 脚本 ⭐
+├── switch-soul.sh        # 定时任务脚本
 ├── config.yaml           # Soul 池配置
-├── greetings/            # 各 Soul 的问候语模板
-│   ├── paimon-greeting.md
-│   ├── catgirl-greeting.md
-│   ├── oneesan-greeting.md
-│   ├── cyberpunk-greeting.md
-│   ├── mentor-greeting.md
-│   ├── ancient-greeting.md
-│   └── tsundere-greeting.md
-└── cron-setup.sh         # 定时任务安装脚本
+├── cron-setup.sh         # 定时任务安装脚本
+├── SKILL.md              # 本文件
+├── souls/                # 所有 Soul 文件目录
+│   ├── paimon.md         # 🌟 派蒙
+│   ├── catgirl.md        # 🐱 猫娘
+│   ├── cyberpunk.md      # ⚡ 赛博黑客
+│   ├── mentor.md         # 👨‍🏫 编程导师
+│   ├── tsundere.md       # 🔪 毒舌吐槽
+│   ├── oneesan.md        # 💋 成熟大姐姐
+│   ├── ancient.md        # 🏮 古风书生
+│   └── loli.md           # 🎀 软萌萝莉
+└── greetings/            # 各 Soul 的问候语模板
+    ├── paimon-greeting.md
+    ├── catgirl-greeting.md
+    ├── cyberpunk-greeting.md
+    ├── mentor-greeting.md
+    ├── oneesan-greeting.md
+    ├── ancient-greeting.md
+    ├── tsundere-greeting.md
+    └── loli-greeting.md
 ```
 
 ---
 
 ## 🚀 快速开始
 
-### 1. 安装 Skill
+### 方式一：交互式命令（推荐）
+
+OpenClaw 安装好后，在终端输入以下命令：
 
 ```bash
-# 复制 skill 到 OpenClaw 配置目录
+# 启用百变马丁（自动安装定时任务）
+./soul-switcher 启用
+
+# 查看所有支持的 Soul
+./soul-switcher 预览
+
+# 手动切换到下一个 Soul
+./soul-switcher 切换
+
+# 切换到指定 Soul（按名称）
+./soul-switcher 切换 派蒙
+
+# 切换到指定 Soul（按索引）
+./soul-switcher 切换 2
+
+# 查看当前状态
+./soul-switcher 状态
+
+# 关闭自动切换
+./soul-switcher 关闭
+```
+
+### 方式二：OpenClaw 自然语言命令
+
+安装后，直接在 OpenClaw 输入：
+
+| 自然语言指令 | 执行的操作 |
+|------------|-----------|
+| "启用百变马丁" / "启动百变龙虾" | 启用自动切换功能 |
+| "切换人格" / "下一个" | 切换到下一个 Soul |
+| "切换到派蒙" / "换成猫娘" | 切换到指定 Soul |
+| "查看人格" / "预览所有风格" | 显示所有可用 Soul |
+| "关闭百变马丁" / "停止切换" | 关闭自动切换功能 |
+
+---
+
+## 📋 命令详解
+
+### `soul-switcher 启用`
+
+启动百变马丁功能：
+- 安装定时任务（每天 10:15 自动切换）
+- 立即切换到今日的 Soul
+- 发送问候语
+
+```bash
+$ ./soul-switcher 启用
+
+🎭 欢迎使用百变马丁 (Soul Switcher)
+═══════════════════════════════════════════════════
+
+ℹ️  正在安装定时任务...
+✅ 定时任务已安装
+
+ℹ️  正在应用今日 Soul...
+✅ Soul 已切换为: 赛博黑客
+
+═══════════════════════════════════════════════════
+  🎭 百变马丁 - Soul 切换成功
+═══════════════════════════════════════════════════
+
+当前人格: ⚡ 赛博黑客
+
+[问候语内容...]
+
+✅ 百变马丁已启用！
+
+提示:
+  • 每天 10:15 自动切换 Soul
+  • 使用 'soul-switcher 切换' 手动切换
+  • 使用 'soul-switcher 预览' 查看所有 Soul
+```
+
+### `soul-switcher 切换 [索引/名称]`
+
+手动切换 Soul：
+
+```bash
+# 切换到下一个
+./soul-switcher 切换
+
+# 切换到指定索引
+./soul-switcher 切换 3
+
+# 切换到指定名称（支持模糊匹配）
+./soul-switcher 切换 派蒙
+./soul-switcher 切换 猫娘
+```
+
+### `soul-switcher 预览`
+
+查看所有可用的 Soul：
+
+```bash
+$ ./soul-switcher 预览
+
+👁️  Soul 预览
+═══════════════════════════════════════════════════
+
+📋 可用的 Soul 列表 (8 个):
+───────────────────────────────────────────────────
+
+  [0] 🌟 派蒙
+      萌系小助手，活泼可爱，偶尔会犯笨
+
+  [1] 🐱 猫娘
+      傲娇猫娘，每句话结尾带喵~
+
+  [2] ⚡ 赛博黑客
+      来自2077年的黑客，高效简洁
+
+  ...
+
+───────────────────────────────────────────────────
+
+使用方式:
+  soul-switcher 切换 [索引/名称]  - 切换到指定 Soul
+  soul-switcher 切换              - 切换到下一个
+```
+
+### `soul-switcher 关闭`
+
+停止自动切换：
+
+```bash
+$ ./soul-switcher 关闭
+
+🛑 关闭百变马丁
+═══════════════════════════════════════════════════
+
+ℹ️  正在移除定时任务...
+✅ 定时任务已移除
+
+ℹ️  当前 Soul 保持不变
+
+提示: 百变马丁已关闭，不再自动切换
+```
+
+### `soul-switcher 状态`
+
+查看当前运行状态：
+
+```bash
+$ ./soul-switcher 状态
+
+📊 百变马丁状态
+═══════════════════════════════════════════════════
+
+运行状态: ● 已启用
+定时任务: 每天 10:15 自动切换
+
+当前 Soul: 🌟 派蒙
+Soul 数量: 8 个
+配置路径: /path/to/config.yaml
+日志路径: ~/.config/openclaw/soul-switcher.log
+```
+
+---
+
+## 🎭 Soul 轮换表
+
+| 星期 | Soul | 图标 | 风格描述 |
+|-----|------|-----|---------|
+| 周日 | 派蒙 | 🌟 | 萌系小助手，活泼可爱 |
+| 周一 | 猫娘 | 🐱 | 傲娇猫娘，每句带喵~ |
+| 周二 | 赛博黑客 | ⚡ | 来自2077年的黑客，高效简洁 |
+| 周三 | 编程导师 | 👨‍🏫 | 耐心专业的编程老师 |
+| 周四 | 毒舌吐槽 | 🔪 | 嘴硬心软的吐槽专家 |
+| 周五 | 成熟大姐姐 | 💋 | 温柔体贴的大姐姐 |
+| 周六 | 古风书生 | 🏮 | 温文尔雅的才子 |
+
+---
+
+## ⚙️ 安装步骤
+
+### 1. 复制 Skill 到 OpenClaw
+
+```bash
+# 复制整个 soul-switcher 目录到 OpenClaw 配置目录
 cp -r tools/soul-switcher ~/.config/openclaw/skills/
 
-# 安装定时任务
+# 进入目录
 cd ~/.config/openclaw/skills/soul-switcher
-./cron-setup.sh
+
+# 添加执行权限
+chmod +x soul-switcher switch-soul.sh
 ```
 
-### 2. 配置 Soul 池
+### 2. 启用百变马丁
 
-编辑 `config.yaml`，设置你的 Soul 文件路径：
+```bash
+./soul-switcher 启用
+```
+
+### 3. 验证安装
+
+```bash
+# 查看状态
+./soul-switcher 状态
+
+# 预览所有 Soul
+./soul-switcher 预览
+```
+
+---
+
+## 🛠️ 高级配置
+
+### 修改切换时间
+
+编辑 `config.yaml`：
 
 ```yaml
-souls_pool:
-  - name: "派蒙"
-    file: "~/.config/openclaw/souls/paimon.md"
-    description: "萌系小助手，活泼可爱"
-    weekday: 0  # 周日
-    
-  - name: "猫娘"
-    file: "~/.config/openclaw/souls/catgirl.md"
-    description: "傲娇猫娘，每句带喵~"
-    weekday: 1  # 周一
-    
-  # ... 更多 Soul
+settings:
+  switch_time: "09:00"  # 改为 9:00
 ```
 
-### 3. 准备 Soul 文件
+然后重新启用：
 
 ```bash
-# 从 awesome-openclaw-souls 复制 Soul 到池中
-mkdir -p ~/.config/openclaw/souls
-cp awesome-openclaw-souls/styles/cute/paimon.md ~/.config/openclaw/souls/
-cp awesome-openclaw-souls/styles/cute/catgirl.md ~/.config/openclaw/souls/
-# ... 复制其他 Soul
-```
-
-### 4. 测试运行
-
-```bash
-# 手动执行一次测试
-~/.config/openclaw/skills/soul-switcher/switch-soul.sh
-```
-
----
-
-## 📝 使用说明
-
-### 定时任务详情
-
-- **执行时间**：每天 10:15 AM
-- **执行操作**：
-  1. 根据日期计算今日 Soul
-  2. 复制 Soul 文件到 `~/.config/openclaw/soul.md`
-  3. 重启 OpenClaw 服务
-  4. 用新 Soul 风格发送问候语
-
-### 问候语内容
-
-每个 Soul 都有定制的问候语，包含：
-- 🌅 早上好问候
-- 🎭 今日风格介绍
-- 💡 今日适合做什么
-- ✨ 标志性口头禅
-
-**示例（派蒙模式）：**
-```
-主人主人！早上好呀~ ☀️
-
-锵锵~ 今天是派蒙陪你哦！
-派蒙是主人最可爱的应急食品...啊不对，最好的伙伴！
-
-今天派蒙会超级努力帮主人解决问题的！
-有什么任务都交给派蒙吧~
-
-对了对了，主人吃早餐了吗？
-派蒙虽然不能吃，但是看着主人吃也很开心呢~ 🍞
-
-诶嘿~ 今天也要元气满满哦！
-```
-
-**示例（赛博黑客模式）：**
-```
-[DATA: 时间 10:15 AM | 系统启动完成]
-
-协议已加载。
-
-今日模式：赛博黑客
-优化等级：最高效率
-安全等级：防火墙全开
-
-[正在分析今日任务队列...]
-
-建议：
-- 深度编程任务 → 效率 +40%
-- 系统安全检测 → 实时防护
-- 代码重构 → 协议已优化
-
-等待指令。
-
-在数字世界里，没有解决不了的问题。
-```
-
----
-
-## ⚙️ 高级配置
-
-### 自定义切换时间
-
-编辑 `cron-setup.sh`，修改时间：
-
-```bash
-# 默认 10:15
-CRON_TIME="15 10 * * *"
-
-# 改为 9:00
-CRON_TIME="0 9 * * *"
+./soul-switcher 关闭
+./soul-switcher 启用
 ```
 
 ### 添加新 Soul
 
-1. 复制 Soul 文件到 `~/.config/openclaw/souls/`
-2. 在 `config.yaml` 中添加配置
-3. 在 `greetings/` 目录创建问候语文件
-4. 重新安装定时任务
+1. 将 Soul 文件复制到 `souls/` 目录
+2. 在 `config.yaml` 的 `souls_pool` 中添加配置
+3. （可选）在 `greetings/` 目录创建问候语文件
 
-### 手动触发切换
+示例：
 
-```bash
-# 立即切换到指定 Soul
-~/.config/openclaw/skills/soul-switcher/switch-soul.sh --force paimon
-
-# 查看今天应该是什么 Soul
-~/.config/openclaw/skills/soul-switcher/switch-soul.sh --preview
-
-# 跳过问候语
-~/.config/openclaw/skills/soul-switcher/switch-soul.sh --no-greeting
+```yaml
+souls_pool:
+  - name: "新角色"
+    file: "./souls/new-character.md"
+    description: "描述文字"
+    icon: "🎭"
+    weekday: 8  # 新的编号
 ```
+
+### 修改问候语
+
+直接编辑 `greetings/` 目录下对应的文件即可。
 
 ---
 
-## 🛠️ 故障排除
+## 🐛 故障排除
+
+### 命令未找到
+
+```bash
+# 确保脚本有执行权限
+chmod +x soul-switcher switch-soul.sh
+
+# 或使用 bash 直接运行
+bash soul-switcher 启用
+```
 
 ### Soul 没有切换
 
-1. 检查定时任务是否安装：`crontab -l | grep soul-switcher`
-2. 检查 Soul 文件路径是否正确
+1. 检查定时任务：`crontab -l | grep soul-switcher`
+2. 检查 Soul 文件是否存在：`ls souls/`
 3. 查看日志：`cat ~/.config/openclaw/soul-switcher.log`
 
 ### 问候语没有显示
 
 1. 检查 `greetings/` 目录下是否有对应的问候语文件
-2. 检查文件权限：`chmod +x switch-soul.sh`
+2. 文件命名格式：`[soul-name]-greeting.md`（小写，空格替换为连字符）
 
-### OpenClaw 没有重启
+### 配置文件解析失败
 
-确保有重启服务的权限，或手动重启：
+安装 `yq` 以获得更好的 YAML 支持：
+
 ```bash
-openclaw restart
+# macOS
+brew install yq
+
+# Linux
+wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
 ```
+
+---
+
+## 📝 使用建议
+
+- 💡 首次使用建议先运行 `./soul-switcher 预览` 查看所有 Soul
+- 💡 可以在 OpenClaw 中设置别名：`alias 百变="~/.config/openclaw/skills/soul-switcher/soul-switcher"`
+- 💡 配合 OpenClaw 的自定义指令，可以实现更自然的交互
 
 ---
 
