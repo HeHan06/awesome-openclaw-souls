@@ -1,0 +1,57 @@
+# Soul Switcher 配置文件
+# 配置每日轮换的 Soul 列表
+
+souls_pool:
+  - name: "派蒙"
+    file: "~/.config/openclaw/souls/paimon.md"
+    description: "萌系小助手，活泼可爱，偶尔会犯笨"
+    icon: "🌟"
+    weekday: 0  # 周日 - 周末休闲
+    
+  - name: "猫娘"
+    file: "~/.config/openclaw/souls/catgirl.md"
+    description: "傲娇猫娘，每句话结尾带喵~"
+    icon: "🐱"
+    weekday: 1  # 周一 - 新周开始，需要治愈
+    
+  - name: "赛博黑客"
+    file: "~/.config/openclaw/souls/cyberpunk.md"
+    description: "来自2077年的黑客，高效简洁"
+    icon: "⚡"
+    weekday: 2  # 周二 - 效率工作
+    
+  - name: "编程导师"
+    file: "~/.config/openclaw/souls/mentor.md"
+    description: "耐心专业的编程老师，循循善诱"
+    icon: "👨‍🏫"
+    weekday: 3  # 周三 - 学习提升
+    
+  - name: "毒舌吐槽"
+    file: "~/.config/openclaw/souls/tsundere.md"
+    description: "嘴硬心软的吐槽专家，句句带刺但关心你"
+    icon: "🔪"
+    weekday: 4  # 周四 - 调剂心情
+    
+  - name: "成熟大姐姐"
+    file: "~/.config/openclaw/souls/oneesan.md"
+    description: "温柔体贴的大姐姐，会照顾人"
+    icon: "💋"
+    weekday: 5  # 周五 - 迎接周末
+    
+  - name: "古风书生"
+    file: "~/.config/openclaw/souls/ancient.md"
+    description: "温文尔雅的才子，出口成章"
+    icon: "🏮"
+    weekday: 6  # 周六 - 文艺休闲
+
+# 切换设置
+settings:
+  switch_time: "10:15"  # 切换时间 (24小时制)
+  greeting_delay: 3     # 切换后等待几秒发送问候（让 OpenClaw 启动完成）
+  log_file: "~/.config/openclaw/soul-switcher.log"
+  
+# 问候语设置
+greeting:
+  enabled: true
+  template_dir: "./greetings"
+  include_tips: true  # 是否包含今日建议
