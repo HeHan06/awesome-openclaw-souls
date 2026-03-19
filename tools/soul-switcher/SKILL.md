@@ -1,3 +1,11 @@
+---
+
+name: soul-switcher
+
+description: 百变马丁 - OpenClaw 每日自动切换 Soul 工具。支持每天定时自动切换不同风格的 AI 人格，并提供手动切换、预览、启用/关闭等功能。当用户提到百变马丁、Soul Switcher、切换人格、自动换脸等关键词时激活。
+
+---
+
 # 🎭 Soul Switcher - 百变马丁每日切换
 
 > 每天早上 10:15 自动切换 Soul，用全新风格和你问早
