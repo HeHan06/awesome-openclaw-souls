@@ -6,8 +6,9 @@ set -e
 
 # 配置路径
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$SCRIPT_DIR/config.yaml"
-SOULS_DIR="$SCRIPT_DIR/souls"
+REFERENCE_DIR="$SCRIPT_DIR/../reference"
+CONFIG_FILE="$REFERENCE_DIR/config.yaml"
+SOULS_DIR="$REFERENCE_DIR/souls"
 OPENCLAW_CONFIG_DIR="${HOME}/.config/openclaw"
 SOUL_TARGET="$OPENCLAW_CONFIG_DIR/soul.md"
 LOG_FILE="$OPENCLAW_CONFIG_DIR/soul-switcher.log"
@@ -100,8 +101,8 @@ get_soul_info_from_config() {
 
 # 获取当前激活的 Soul 索引
 get_current_soul_index() {
-    if [[ -f "$SCRIPT_DIR/.current_soul" ]]; then
-        cat "$SCRIPT_DIR/.current_soul"
+    if [[ -f "$REFERENCE_DIR/.current_soul" ]]; then
+        cat "$REFERENCE_DIR/.current_soul"
     else
         echo "0"
     fi
@@ -109,7 +110,7 @@ get_current_soul_index() {
 
 # 保存当前 Soul 索引
 set_current_soul_index() {
-    echo "$1" > "$SCRIPT_DIR/.current_soul"
+    echo "$1" > "$REFERENCE_DIR/.current_soul"
 }
 
 # 获取指定索引的 Soul 文件
@@ -145,7 +146,7 @@ send_greeting() {
     local index="$1"
     local soul_name=$(get_soul_name "$index")
     local soul_icon=$(get_soul_icon "$index")
-    local greeting_file="$SCRIPT_DIR/greetings/$(echo "$soul_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')-greeting.md"
+    local greeting_file="$REFERENCE_DIR/greetings/$(echo "$soul_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')-greeting.md"
     
     echo ""
     echo "═══════════════════════════════════════════════════"

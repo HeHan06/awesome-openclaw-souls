@@ -6,8 +6,9 @@ set -e
 
 # 配置路径
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$SCRIPT_DIR/config.yaml"
-SOULS_DIR="$SCRIPT_DIR/souls"
+REFERENCE_DIR="$SCRIPT_DIR/../reference"
+CONFIG_FILE="$REFERENCE_DIR/config.yaml"
+SOULS_DIR="$REFERENCE_DIR/souls"
 OPENCLAW_CONFIG_DIR="${HOME}/.config/openclaw"
 SOUL_TARGET="$OPENCLAW_CONFIG_DIR/soul.md"
 LOG_FILE="$OPENCLAW_CONFIG_DIR/soul-switcher.log"
@@ -77,7 +78,7 @@ get_soul_icon() {
 # 保存当前 Soul 索引
 save_current_index() {
     local index=$1
-    echo "$index" > "$SCRIPT_DIR/.current_soul"
+    echo "$index" > "$REFERENCE_DIR/.current_soul"
 }
 
 # 执行 Soul 切换
@@ -123,7 +124,7 @@ send_greeting() {
     local soul_name=$(get_soul_name $weekday)
     local soul_description=$(get_soul_description $weekday)
     local soul_icon=$(get_soul_icon $weekday)
-    local greeting_file="$SCRIPT_DIR/greetings/$(echo $soul_name | tr '[:upper:]' '[:lower:]' | tr ' ' '-')-greeting.md"
+    local greeting_file="$REFERENCE_DIR/greetings/$(echo $soul_name | tr '[:upper:]' '[:lower:]' | tr ' ' '-')-greeting.md"
 
     log "准备发送问候语..."
 

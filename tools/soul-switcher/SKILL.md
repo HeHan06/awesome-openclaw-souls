@@ -17,31 +17,35 @@
 
 ## 📁 文件结构
 
+标准 Skill 目录结构：
+
 ```
 soul-switcher/
-├── soul-switcher         # 主控 CLI 脚本 ⭐
-├── switch-soul.sh        # 定时任务脚本
-├── config.yaml           # Soul 池配置
-├── cron-setup.sh         # 定时任务安装脚本
-├── SKILL.md              # 本文件
-├── souls/                # 所有 Soul 文件目录
-│   ├── paimon.md         # 🌟 派蒙
-│   ├── catgirl.md        # 🐱 猫娘
-│   ├── cyberpunk.md      # ⚡ 赛博黑客
-│   ├── mentor.md         # 👨‍🏫 编程导师
-│   ├── tsundere.md       # 🔪 毒舌吐槽
-│   ├── oneesan.md        # 💋 成熟大姐姐
-│   ├── ancient.md        # 🏮 古风书生
-│   └── loli.md           # 🎀 软萌萝莉
-└── greetings/            # 各 Soul 的问候语模板
-    ├── paimon-greeting.md
-    ├── catgirl-greeting.md
-    ├── cyberpunk-greeting.md
-    ├── mentor-greeting.md
-    ├── oneesan-greeting.md
-    ├── ancient-greeting.md
-    ├── tsundere-greeting.md
-    └── loli-greeting.md
+├── SKILL.md              # 本文件（Skill 入口）
+├── scripts/              # 脚本目录
+│   ├── soul-switcher     # 主控 CLI 脚本 ⭐
+│   ├── switch-soul.sh    # 定时任务脚本
+│   └── cron-setup.sh     # 定时任务安装脚本
+└── reference/            # 资源文件目录
+    ├── config.yaml       # Soul 池配置
+    ├── souls/            # 所有 Soul 文件目录
+    │   ├── paimon.md     # 🌟 派蒙
+    │   ├── catgirl.md    # 🐱 猫娘
+    │   ├── cyberpunk.md  # ⚡ 赛博黑客
+    │   ├── mentor.md     # 👨‍🏫 编程导师
+    │   ├── tsundere.md   # 🔪 毒舌吐槽
+    │   ├── oneesan.md    # 💋 成熟大姐姐
+    │   ├── ancient.md    # 🏮 古风书生
+    │   └── loli.md       # 🎀 软萌萝莉
+    └── greetings/        # 各 Soul 的问候语模板
+        ├── paimon-greeting.md
+        ├── catgirl-greeting.md
+        ├── cyberpunk-greeting.md
+        ├── mentor-greeting.md
+        ├── oneesan-greeting.md
+        ├── ancient-greeting.md
+        ├── tsundere-greeting.md
+        └── loli-greeting.md
 ```
 
 ---
@@ -54,25 +58,25 @@ OpenClaw 安装好后，在终端输入以下命令：
 
 ```bash
 # 启用百变马丁（自动安装定时任务）
-./soul-switcher 启用
+./scripts/soul-switcher 启用
 
 # 查看所有支持的 Soul
-./soul-switcher 预览
+./scripts/soul-switcher 预览
 
 # 手动切换到下一个 Soul
-./soul-switcher 切换
+./scripts/soul-switcher 切换
 
 # 切换到指定 Soul（按名称）
-./soul-switcher 切换 派蒙
+./scripts/soul-switcher 切换 派蒙
 
 # 切换到指定 Soul（按索引）
-./soul-switcher 切换 2
+./scripts/soul-switcher 切换 2
 
 # 查看当前状态
-./soul-switcher 状态
+./scripts/soul-switcher 状态
 
 # 关闭自动切换
-./soul-switcher 关闭
+./scripts/soul-switcher 关闭
 ```
 
 ### 方式二：OpenClaw 自然语言命令
@@ -99,7 +103,7 @@ OpenClaw 安装好后，在终端输入以下命令：
 - 发送问候语
 
 ```bash
-$ ./soul-switcher 启用
+$ ./scripts/soul-switcher 启用
 
 🎭 欢迎使用百变马丁 (Soul Switcher)
 ═══════════════════════════════════════════════════
@@ -122,8 +126,8 @@ $ ./soul-switcher 启用
 
 提示:
   • 每天 10:15 自动切换 Soul
-  • 使用 'soul-switcher 切换' 手动切换
-  • 使用 'soul-switcher 预览' 查看所有 Soul
+• 使用 './scripts/soul-switcher 切换' 手动切换
+• 使用 './scripts/soul-switcher 预览' 查看所有 Soul
 ```
 
 ### `soul-switcher 切换 [索引/名称]`
@@ -132,14 +136,14 @@ $ ./soul-switcher 启用
 
 ```bash
 # 切换到下一个
-./soul-switcher 切换
+./scripts/soul-switcher 切换
 
 # 切换到指定索引
-./soul-switcher 切换 3
+./scripts/soul-switcher 切换 3
 
 # 切换到指定名称（支持模糊匹配）
-./soul-switcher 切换 派蒙
-./soul-switcher 切换 猫娘
+./scripts/soul-switcher 切换 派蒙
+./scripts/soul-switcher 切换 猫娘
 ```
 
 ### `soul-switcher 预览`
@@ -147,7 +151,7 @@ $ ./soul-switcher 启用
 查看所有可用的 Soul：
 
 ```bash
-$ ./soul-switcher 预览
+$ ./scripts/soul-switcher 预览
 
 👁️  Soul 预览
 ═══════════════════════════════════════════════════
@@ -169,8 +173,8 @@ $ ./soul-switcher 预览
 ───────────────────────────────────────────────────
 
 使用方式:
-  soul-switcher 切换 [索引/名称]  - 切换到指定 Soul
-  soul-switcher 切换              - 切换到下一个
+  ./scripts/soul-switcher 切换 [索引/名称]  - 切换到指定 Soul
+  ./scripts/soul-switcher 切换              - 切换到下一个
 ```
 
 ### `soul-switcher 关闭`
@@ -178,7 +182,7 @@ $ ./soul-switcher 预览
 停止自动切换：
 
 ```bash
-$ ./soul-switcher 关闭
+$ ./scripts/soul-switcher 关闭
 
 🛑 关闭百变马丁
 ═══════════════════════════════════════════════════
@@ -196,7 +200,7 @@ $ ./soul-switcher 关闭
 查看当前运行状态：
 
 ```bash
-$ ./soul-switcher 状态
+$ ./scripts/soul-switcher 状态
 
 📊 百变马丁状态
 ═══════════════════════════════════════════════════
@@ -238,7 +242,7 @@ cp -r tools/soul-switcher ~/.config/openclaw/skills/
 cd ~/.config/openclaw/skills/soul-switcher
 
 # 添加执行权限
-chmod +x soul-switcher switch-soul.sh
+chmod +x scripts/soul-switcher scripts/switch-soul.sh
 ```
 
 ### 2. 启用百变马丁
@@ -273,15 +277,15 @@ settings:
 然后重新启用：
 
 ```bash
-./soul-switcher 关闭
-./soul-switcher 启用
+./scripts/soul-switcher 关闭
+./scripts/soul-switcher 启用
 ```
 
 ### 添加新 Soul
 
-1. 将 Soul 文件复制到 `souls/` 目录
-2. 在 `config.yaml` 的 `souls_pool` 中添加配置
-3. （可选）在 `greetings/` 目录创建问候语文件
+1. 将 Soul 文件复制到 `reference/souls/` 目录
+2. 在 `reference/config.yaml` 的 `souls_pool` 中添加配置
+3. （可选）在 `reference/greetings/` 目录创建问候语文件
 
 示例：
 
@@ -296,7 +300,7 @@ souls_pool:
 
 ### 修改问候语
 
-直接编辑 `greetings/` 目录下对应的文件即可。
+直接编辑 `reference/greetings/` 目录下对应的文件即可。
 
 ---
 
@@ -306,10 +310,10 @@ souls_pool:
 
 ```bash
 # 确保脚本有执行权限
-chmod +x soul-switcher switch-soul.sh
+chmod +x scripts/soul-switcher scripts/switch-soul.sh
 
 # 或使用 bash 直接运行
-bash soul-switcher 启用
+bash scripts/soul-switcher 启用
 ```
 
 ### Soul 没有切换
