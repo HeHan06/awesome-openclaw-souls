@@ -14,17 +14,17 @@ souls_pool:
     icon: "🐱"
     weekday: 1  # 周一 - 新周开始，需要治愈
 
-  - name: "赛博黑客"
-    file: "./souls/cyberpunk.md"
-    description: "来自2077年的黑客，高效简洁"
-    icon: "⚡"
-    weekday: 2  # 周二 - 效率工作
+  - name: "贴心女友"
+    file: "./souls/girlfriend.md"
+    description: "温柔体贴的女朋友，会照顾人、会撒娇"
+    icon: "💕"
+    weekday: 2  # 周二 - 甜蜜陪伴
 
-  - name: "编程导师"
-    file: "./souls/mentor.md"
-    description: "耐心专业的编程老师，循循善诱"
-    icon: "👨‍🏫"
-    weekday: 3  # 周三 - 学习提升
+  - name: "呆萌女儿"
+    file: "./souls/daughter.md"
+    description: "天真可爱的女儿，软萌黏人，让你心都化了"
+    icon: "🎀"
+    weekday: 3  # 周三 - 治愈系
 
   - name: "毒舌吐槽"
     file: "./souls/tsundere.md"
@@ -40,14 +40,14 @@ souls_pool:
 
   - name: "古风书生"
     file: "./souls/ancient.md"
-    description: "温文尔雅的才子，出口成章"
+    description: "温文尔雅的才女，出口成章"
     icon: "🏮"
     weekday: 6  # 周六 - 文艺休闲
 
   - name: "软萌萝莉"
     file: "./souls/loli.md"
     description: "天真无邪的小萝莉，治愈系担当"
-    icon: "🎀"
+    icon: "🍼"
     weekday: 7  # 备用
 
 # 切换设置
@@ -61,3 +61,4 @@ greeting:
   enabled: true
   template_dir: "./greetings"
   include_tips: true  # 是否包含今日建议
+
