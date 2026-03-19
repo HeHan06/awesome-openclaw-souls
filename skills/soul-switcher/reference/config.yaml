@@ -54,7 +54,7 @@ souls_pool:
 settings:
   switch_time: "10:15"  # 切换时间 (24小时制)
   greeting_delay: 3     # 切换后等待几秒发送问候（让 OpenClaw 启动完成）
-  log_file: "~/.config/openclaw/soul-switcher.log"
+  log_file: "~/.openclaw/soul-switcher.log"
 
 # 问候语设置
 greeting:

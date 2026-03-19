@@ -1,5 +1,5 @@
 #!/bin/bash
-# 🎭 Soul Switcher CLI - 百变马丁主控脚本
+# 🎭 Soul Switcher CLI - 百变龙虾主控脚本
 # 支持命令：启用、切换、预览、关闭
 
 set -e
@@ -9,10 +9,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REFERENCE_DIR="$SCRIPT_DIR/../reference"
 CONFIG_FILE="$REFERENCE_DIR/config.yaml"
 SOULS_DIR="$REFERENCE_DIR/souls"
-OPENCLAW_CONFIG_DIR="${HOME}/.config/openclaw"
-SOUL_TARGET="$OPENCLAW_CONFIG_DIR/soul.md"
+OPENCLAW_CONFIG_DIR="${HOME}/.openclaw"
+SOUL_TARGET="${HOME}/.openclaw/workspace/SOUL.md"
 LOG_FILE="$OPENCLAW_CONFIG_DIR/soul-switcher.log"
-CRON_TAG="# soul-switcher-auto"
+CRON_JOB_NAME="百变龙虾-每日切换"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -36,15 +36,61 @@ print_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 print_highlight() { echo -e "${CYAN}$1${NC}"; }
 
 # ═══════════════════════════════════════════════════════════════
-# 核心功能函数
+# OpenClaw cron 工具函数
 # ═══════════════════════════════════════════════════════════════
 
-# 获取 Soul 列表
-get_souls_list() {
-    ls -1 "$SOULS_DIR"/*.md 2>/dev/null | while read -r f; do
-        basename "$f" .md
-    done
+# 检查 openclaw cron 是否可用
+has_openclaw_cron() {
+    command -v openclaw &>/dev/null
 }
+
+# 获取百变龙虾 cron job ID（通过名称匹配）
+get_cron_job_id() {
+    if ! has_openclaw_cron; then return 1; fi
+    openclaw cron list --json 2>/dev/null | \
+        python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+jobs=data.get('jobs',[])
+name='${CRON_JOB_NAME}'
+ids=[j['id'] for j in jobs if j.get('name')==name]
+print(ids[0] if ids else '')
+" 2>/dev/null || true
+}
+
+# 检查 openclaw cron 是否已启用百变龙虾
+is_openclaw_cron_enabled() {
+    local job_id
+    job_id=$(get_cron_job_id)
+    [[ -n "$job_id" ]]
+}
+
+# 添加 openclaw cron job（每天 10:15 Asia/Shanghai）
+add_openclaw_cron() {
+    openclaw cron add \
+        --name "$CRON_JOB_NAME" \
+        --cron "15 10 * * *" \
+        --tz "Asia/Shanghai" \
+        --session isolated \
+        --message "执行百变龙虾每日 Soul 切换。请运行：bash ~/.openclaw/skills/soul-switcher/scripts/switch-soul.sh 然后用新的 Soul 风格向用户问好。" \
+        --announce \
+        2>&1
+}
+
+# 移除 openclaw cron job
+remove_openclaw_cron() {
+    local job_id
+    job_id=$(get_cron_job_id)
+    if [[ -n "$job_id" ]]; then
+        openclaw cron remove "$job_id" 2>&1
+        return $?
+    fi
+    return 1
+}
+
+# ═══════════════════════════════════════════════════════════════
+# 核心功能函数
+# ═══════════════════════════════════════════════════════════════
 
 # 获取 Soul 数量
 get_souls_count() {
@@ -59,39 +105,25 @@ get_soul_info_from_config() {
     if command -v yq &> /dev/null; then
         yq eval ".souls_pool[$index].$field" "$CONFIG_FILE" 2>/dev/null | tr -d '"'
     else
-        # 手动解析 yaml - macOS 兼容版
         awk -v idx="$index" -v fld="$field" '
             BEGIN { count = -1 }
-            # 每个列表项以 "  - name:" 开始
             /^  - name:/ { count++ }
             count == idx {
-                # 特殊处理 name 字段（它在 - 后面）
                 if (fld == "name") {
-                    # 提取引号中的值
                     line = $0
                     start = index(line, "\"")
                     if (start > 0) {
                         rest = substr(line, start + 1)
                         end = index(rest, "\"")
-                        if (end > 0) {
-                            print substr(rest, 1, end - 1)
-                            exit
-                        }
+                        if (end > 0) { print substr(rest, 1, end - 1); exit }
                     }
                 } else {
-                    # 其他字段是 4 空格缩进
                     prefix = "    " fld ": "
                     if (index($0, prefix) == 1) {
                         value = substr($0, length(prefix) + 1)
-                        # 去除引号
-                        if (substr(value, 1, 1) == "\"") {
-                            value = substr(value, 2)
-                        }
-                        if (substr(value, length(value), 1) == "\"") {
-                            value = substr(value, 1, length(value) - 1)
-                        }
-                        print value
-                        exit
+                        if (substr(value, 1, 1) == "\"") value = substr(value, 2)
+                        if (substr(value, length(value), 1) == "\"") value = substr(value, 1, length(value) - 1)
+                        print value; exit
                     }
                 }
             }
@@ -99,7 +131,6 @@ get_soul_info_from_config() {
     fi
 }
 
-# 获取当前激活的 Soul 索引
 get_current_soul_index() {
     if [[ -f "$REFERENCE_DIR/.current_soul" ]]; then
         cat "$REFERENCE_DIR/.current_soul"
@@ -108,49 +139,31 @@ get_current_soul_index() {
     fi
 }
 
-# 保存当前 Soul 索引
 set_current_soul_index() {
     echo "$1" > "$REFERENCE_DIR/.current_soul"
 }
 
-# 获取指定索引的 Soul 文件
 get_soul_file_by_index() {
     local index="$1"
-    local name=$(get_soul_info_from_config "name" "$index")
-    # 查找对应的文件
-    local file=$(get_soul_info_from_config "file" "$index")
-    # 将路径转换为本地路径
+    local file
+    file=$(get_soul_info_from_config "file" "$index")
     echo "$SOULS_DIR/$(basename "$file")"
 }
 
-# 获取 Soul 名称
-get_soul_name() {
-    local index="$1"
-    get_soul_info_from_config "name" "$index"
-}
+get_soul_name() { get_soul_info_from_config "name" "$1"; }
+get_soul_icon() { get_soul_info_from_config "icon" "$1"; }
+get_soul_description() { get_soul_info_from_config "description" "$1"; }
 
-# 获取 Soul 图标
-get_soul_icon() {
-    local index="$1"
-    get_soul_info_from_config "icon" "$index"
-}
-
-# 获取 Soul 描述
-get_soul_description() {
-    local index="$1"
-    get_soul_info_from_config "description" "$index"
-}
-
-# 发送问候语
 send_greeting() {
     local index="$1"
-    local soul_name=$(get_soul_name "$index")
-    local soul_icon=$(get_soul_icon "$index")
+    local soul_name soul_icon
+    soul_name=$(get_soul_name "$index")
+    soul_icon=$(get_soul_icon "$index")
     local greeting_file="$REFERENCE_DIR/greetings/$(echo "$soul_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')-greeting.md"
     
     echo ""
     echo "═══════════════════════════════════════════════════"
-    echo "  🎭 百变马丁 - Soul 切换成功"
+    echo "  🎭 百变龙虾 - Soul 切换成功"
     echo "═══════════════════════════════════════════════════"
     echo ""
     echo -e "${MAGENTA}当前人格: $soul_icon $soul_name ${NC}"
@@ -166,55 +179,56 @@ send_greeting() {
     echo "═══════════════════════════════════════════════════"
 }
 
-# 生成默认问候语
 generate_default_greeting() {
     local index="$1"
-    local soul_name=$(get_soul_name "$index")
-    local soul_desc=$(get_soul_description "$index")
-    
+    local soul_name soul_desc
+    soul_name=$(get_soul_name "$index")
+    soul_desc=$(get_soul_description "$index")
     cat << EOF
 🌟 你好！我是 **$soul_name**
 
 $soul_desc
 
-今天我会以我的风格陪伴你，
-有什么需要尽管告诉我！
-
-让我们开始吧~ ✨
+今天我会以我的风格陪伴你，有什么需要尽管告诉我！✨
 EOF
 }
 
-# 执行 Soul 切换
+# 执行 Soul 切换（写入 workspace/SOUL.md）
 do_switch_soul() {
     local index="$1"
-    local soul_file=$(get_soul_file_by_index "$index")
-    local soul_name=$(get_soul_name "$index")
+    local soul_file soul_name
+    soul_file=$(get_soul_file_by_index "$index")
+    soul_name=$(get_soul_name "$index")
     
     if [[ ! -f "$soul_file" ]]; then
         print_error "Soul 文件不存在: $soul_file"
         return 1
     fi
     
-    # 确保 OpenClaw 配置目录存在
-    mkdir -p "$OPENCLAW_CONFIG_DIR"
+    mkdir -p "$(dirname "$SOUL_TARGET")"
     
     # 备份当前 Soul
     if [[ -f "$SOUL_TARGET" ]]; then
         cp "$SOUL_TARGET" "$SOUL_TARGET.backup.$(date +%Y%m%d_%H%M%S)"
     fi
     
-    # 复制新 Soul
+    # 写入 workspace/SOUL.md（OpenClaw 实际读取的路径）
     cp "$soul_file" "$SOUL_TARGET"
-    
-    # 保存当前索引
     set_current_soul_index "$index"
-    
-    # 记录日志
     log "Soul 已切换为: $soul_name (索引: $index)"
     
     print_success "Soul 已切换为: $soul_name"
+    print_info "已写入: $SOUL_TARGET"
     
-    # 发送问候语
+    # 通知 OpenClaw 当前对话立即重读 SOUL.md（无损切换）
+    if command -v openclaw &>/dev/null; then
+        openclaw session send --message "【Soul 已切换】人格已更新为「$soul_name」。请立即重新读取 SOUL.md，并从现在起完全按照新人格回复，无需等待下次对话。" 2>/dev/null || true
+        print_info "已通知 OpenClaw 立即切换人格（当前对话即时生效）"
+        log "已通知 OpenClaw 重读 SOUL.md"
+    else
+        print_info "提示：openclaw 命令不可用，新 Soul 将在下次 /reset 或新对话生效"
+    fi
+    
     send_greeting "$index"
 }
 
@@ -222,105 +236,115 @@ do_switch_soul() {
 # 命令实现
 # ═══════════════════════════════════════════════════════════════
 
-# 命令：启用
 cmd_enable() {
     echo ""
-    echo -e "${CYAN}🎭 欢迎使用百变马丁 (Soul Switcher)${NC}"
+    echo -e "${CYAN}🎭 欢迎使用百变龙虾 (Soul Switcher)${NC}"
     echo "═══════════════════════════════════════════════════"
     echo ""
     
-    # 检查是否已启用
-    if crontab -l 2>/dev/null | grep -q "$CRON_TAG"; then
-        print_warning "百变马丁已经在运行了！"
-        echo ""
-        echo "当前状态:"
-        cmd_status
-        return 0
-    fi
-    
-    # 检查 souls 目录
     if [[ ! -d "$SOULS_DIR" ]] || [[ $(get_souls_count) -eq 0 ]]; then
         print_error "souls 目录为空，请先添加 Soul 文件到 $SOULS_DIR/"
         return 1
     fi
-    
+
     print_info "正在安装定时任务..."
+
+    if has_openclaw_cron; then
+        if is_openclaw_cron_enabled; then
+            print_warning "百变龙虾定时任务已存在（openclaw cron），跳过重复安装"
+        else
+            if add_openclaw_cron; then
+                print_success "定时任务已安装（openclaw cron，每天 10:15 Asia/Shanghai）"
+            else
+                print_warning "openclaw cron 安装失败，回退到系统 crontab..."
+                _install_system_cron
+            fi
+        fi
+    else
+        print_warning "未检测到 openclaw，使用系统 crontab..."
+        _install_system_cron
+    fi
     
-    # 添加定时任务（每天 10:15）
-    local cron_job="15 10 * * * cd \"$SCRIPT_DIR\" && ./switch-soul.sh $CRON_TAG"
-    
-    # 安全地添加到 crontab
-    (crontab -l 2>/dev/null || echo "") | grep -v "$CRON_TAG" > /tmp/cron.tmp
-    echo "$cron_job" >> /tmp/cron.tmp
-    crontab /tmp/cron.tmp
-    rm /tmp/cron.tmp
-    
-    print_success "定时任务已安装"
-    
-    # 立即执行一次切换
     echo ""
     print_info "正在应用今日 Soul..."
-    
-    # 计算今天的索引
-    local weekday=$(date +%w)
-    local index=$((weekday % $(get_souls_count)))
-    
+    local weekday index
+    weekday=$(date +%w)
+    index=$((weekday % $(get_souls_count)))
     do_switch_soul "$index"
     
     echo ""
-    print_success "百变马丁已启用！"
+    print_success "百变龙虾已启用！"
     echo ""
     echo -e "${YELLOW}提示:${NC}"
-    echo "  • 每天 10:15 自动切换 Soul"
+    echo "  • 每天 10:15 自动切换 Soul（自动通知当前对话立即生效）"
     echo "  • 使用 'soul-switcher 切换' 手动切换"
     echo "  • 使用 'soul-switcher 预览' 查看所有 Soul"
 }
 
-# 命令：关闭
+_install_system_cron() {
+    local CRON_TAG="# soul-switcher-auto"
+    local cron_job="15 10 * * * cd \"$SCRIPT_DIR\" && ./switch-soul.sh $CRON_TAG"
+    (crontab -l 2>/dev/null || true) | grep -v "$CRON_TAG" > /tmp/soul-cron.tmp || true
+    echo "$cron_job" >> /tmp/soul-cron.tmp
+    crontab /tmp/soul-cron.tmp
+    rm -f /tmp/soul-cron.tmp
+    print_success "定时任务已安装（系统 crontab，每天 10:15）"
+}
+
 cmd_disable() {
     echo ""
-    echo -e "${CYAN}🛑 关闭百变马丁${NC}"
+    echo -e "${CYAN}🛑 关闭百变龙虾${NC}"
     echo "═══════════════════════════════════════════════════"
     echo ""
     
-    # 检查是否已启用
-    if ! crontab -l 2>/dev/null | grep -q "$CRON_TAG"; then
-        print_warning "百变马丁当前未运行"
+    local removed=0
+
+    if has_openclaw_cron && is_openclaw_cron_enabled; then
+        print_info "正在移除 openclaw cron 定时任务..."
+        if remove_openclaw_cron; then
+            print_success "openclaw cron 定时任务已移除"
+            removed=1
+        else
+            print_warning "openclaw cron 移除失败"
+        fi
+    fi
+
+    local CRON_TAG="# soul-switcher-auto"
+    if crontab -l 2>/dev/null | grep -q "$CRON_TAG"; then
+        print_info "正在移除系统 crontab 遗留任务..."
+        (crontab -l 2>/dev/null || true) | grep -v "$CRON_TAG" > /tmp/soul-cron.tmp || true
+        crontab /tmp/soul-cron.tmp
+        rm -f /tmp/soul-cron.tmp
+        print_success "系统 crontab 任务已移除"
+        removed=1
+    fi
+
+    if [[ $removed -eq 0 ]]; then
+        print_warning "百变龙虾当前未运行（未找到任何定时任务）"
         return 0
     fi
     
-    print_info "正在移除定时任务..."
-    
-    # 从 crontab 移除
-    (crontab -l 2>/dev/null || echo "") | grep -v "$CRON_TAG" > /tmp/cron.tmp
-    crontab /tmp/cron.tmp
-    rm /tmp/cron.tmp
-    
-    print_success "定时任务已移除"
-    
     echo ""
     print_info "当前 Soul 保持不变"
-    echo ""
-    echo -e "${YELLOW}提示:${NC} 百变马丁已关闭，不再自动切换"
+    echo -e "${YELLOW}提示:${NC} 百变龙虾已关闭，不再自动切换"
 }
 
-# 命令：切换
 cmd_switch() {
     local direction="${1:-next}"
-    
     echo ""
     echo -e "${CYAN}🔄 切换 Soul${NC}"
     echo "═══════════════════════════════════════════════════"
     echo ""
     
-    local count=$(get_souls_count)
+    local count
+    count=$(get_souls_count)
     if [[ $count -eq 0 ]]; then
         print_error "没有找到可用的 Soul 文件"
         return 1
     fi
     
-    local current=$(get_current_soul_index)
-    local next_index
+    local current next_index
+    current=$(get_current_soul_index)
     
     if [[ "$direction" == "next" ]]; then
         next_index=$(((current + 1) % count))
@@ -333,15 +357,15 @@ cmd_switch() {
             return 1
         fi
     else
-        # 尝试按名称匹配
+        next_index=""
         for i in $(seq 0 $((count-1))); do
-            local name=$(get_soul_name "$i")
+            local name
+            name=$(get_soul_name "$i")
             if [[ "$name" == *"$direction"* ]]; then
                 next_index=$i
                 break
             fi
         done
-        
         if [[ -z "$next_index" ]]; then
             print_error "未知的 Soul: $direction"
             return 1
@@ -351,55 +375,55 @@ cmd_switch() {
     do_switch_soul "$next_index"
 }
 
-# 命令：预览
 cmd_preview() {
     echo ""
     echo -e "${CYAN}👁️  Soul 预览${NC}"
     echo "═══════════════════════════════════════════════════"
     echo ""
-    
-    local count=$(get_souls_count)
-    local current=$(get_current_soul_index)
+    local count current
+    count=$(get_souls_count)
+    current=$(get_current_soul_index)
     
     echo "📋 可用的 Soul 列表 ($count 个):"
     echo "───────────────────────────────────────────────────"
     echo ""
     
     for i in $(seq 0 $((count-1))); do
-        local name=$(get_soul_name "$i")
-        local icon=$(get_soul_icon "$i")
-        local desc=$(get_soul_description "$i")
-        local marker=""
-        local color=""
-        
+        local name icon desc marker color
+        name=$(get_soul_name "$i")
+        icon=$(get_soul_icon "$i")
+        desc=$(get_soul_description "$i")
+        marker=""
+        color=""
         if [[ "$i" == "$current" ]]; then
             marker=" ← 当前"
             color="${GREEN}"
         fi
-        
         echo -e "${color}  [$i] $icon $name${NC}$marker"
         echo "      $desc"
         echo ""
     done
     
     echo "───────────────────────────────────────────────────"
-    echo ""
     echo -e "${YELLOW}使用方式:${NC}"
     echo "  soul-switcher 切换 [索引/名称]  - 切换到指定 Soul"
     echo "  soul-switcher 切换              - 切换到下一个"
     echo ""
 }
 
-# 命令：状态
 cmd_status() {
     echo ""
-    echo -e "${CYAN}📊 百变马丁状态${NC}"
+    echo -e "${CYAN}📊 百变龙虾状态${NC}"
     echo "═══════════════════════════════════════════════════"
     echo ""
     
-    # 检查定时任务状态
-    if crontab -l 2>/dev/null | grep -q "$CRON_TAG"; then
-        echo -e "运行状态: ${GREEN}● 已启用${NC}"
+    if has_openclaw_cron && is_openclaw_cron_enabled; then
+        local job_id
+        job_id=$(get_cron_job_id)
+        echo -e "运行状态: ${GREEN}● 已启用（openclaw cron）${NC}"
+        echo "定时任务: 每天 10:15 Asia/Shanghai 自动切换（job: $job_id）"
+    elif crontab -l 2>/dev/null | grep -q "soul-switcher-auto"; then
+        echo -e "运行状态: ${GREEN}● 已启用（系统 crontab）${NC}"
         echo "定时任务: 每天 10:15 自动切换"
     else
         echo -e "运行状态: ${RED}● 已关闭${NC}"
@@ -407,68 +431,41 @@ cmd_status() {
     fi
     
     echo ""
-    
-    # 当前 Soul
-    local current=$(get_current_soul_index)
-    local name=$(get_soul_name "$current")
-    local icon=$(get_soul_icon "$current")
+    local current name icon count
+    current=$(get_current_soul_index)
+    name=$(get_soul_name "$current")
+    icon=$(get_soul_icon "$current")
+    count=$(get_souls_count)
     
     echo -e "当前 Soul: ${MAGENTA}$icon $name${NC}"
-    
-    # Soul 池数量
-    local count=$(get_souls_count)
+    echo "Soul 写入: $SOUL_TARGET"
     echo "Soul 数量: $count 个"
-    
-    # 配置文件路径
     echo "配置路径: $CONFIG_FILE"
     echo "日志路径: $LOG_FILE"
-    
     echo ""
 }
 
-# 命令：帮助
 cmd_help() {
     cat << EOF
 
-🎭 百变马丁 (Soul Switcher) - 使用指南
+🎭 百变龙虾 (Soul Switcher) - 使用指南
 ═══════════════════════════════════════════════════
 
 ${CYAN}命令列表:${NC}
 
-  ${GREEN}启用${NC}              启动百变马丁，安装定时任务
-  ${GREEN}关闭${NC}              停止百变马丁，移除定时任务
+  ${GREEN}启用${NC}              启动百变龙虾，安装定时任务
+  ${GREEN}关闭${NC}              停止百变龙虾，移除定时任务
   ${GREEN}切换${NC} [索引/名称]   手动切换到指定 Soul
   ${GREEN}预览${NC}              查看所有可用 Soul
   ${GREEN}状态${NC}              查看当前运行状态
   ${GREEN}帮助${NC}              显示此帮助信息
 
-${CYAN}使用示例:${NC}
+${CYAN}说明:${NC}
 
-  # 启用百变马丁
-  soul-switcher 启用
-
-  # 切换到下一个 Soul
-  soul-switcher 切换
-
-  # 切换到指定 Soul（按索引）
-  soul-switcher 切换 2
-
-  # 切换到指定 Soul（按名称）
-  soul-switcher 切换 派蒙
-
-  # 查看所有 Soul
-  soul-switcher 预览
-
-  # 关闭自动切换
-  soul-switcher 关闭
-
-${CYAN}快捷命令:${NC}
-
-  安装后，你可以直接在 OpenClaw 中输入：
-  "启用百变马丁" → 自动执行启用脚本
-  "切换人格"     → 切换到下一个 Soul
-  "查看人格"     → 预览所有 Soul
-  "关闭百变马丁" → 停止自动切换
+  • 优先使用 openclaw cron（Gateway 内置调度器）
+  • openclaw 不可用时自动回退到系统 crontab
+  • Soul 文件写入 ~/.openclaw/workspace/SOUL.md
+  • 新 Soul 在下次 /reset 或新对话时生效
 
 ═══════════════════════════════════════════════════
 
@@ -480,35 +477,16 @@ EOF
 # ═══════════════════════════════════════════════════════════════
 
 main() {
-    # 确保目录存在
     mkdir -p "$OPENCLAW_CONFIG_DIR"
-    
-    # 解析命令
     case "${1:-}" in
-        启用|enable|start|on)
-            cmd_enable
-            ;;
-        关闭|disable|stop|off)
-            cmd_disable
-            ;;
-        切换|switch|next)
-            cmd_switch "${2:-next}"
-            ;;
-        预览|preview|list|ls)
-            cmd_preview
-            ;;
-        状态|status|state)
-            cmd_status
-            ;;
-        帮助|help|-h|--help)
-            cmd_help
-            ;;
-        *)
-            # 默认显示帮助
-            cmd_help
-            ;;
+        启用|enable|start|on) cmd_enable ;;
+        关闭|disable|stop|off) cmd_disable ;;
+        切换|switch|next) cmd_switch "${2:-next}" ;;
+        预览|preview|list|ls) cmd_preview ;;
+        状态|status|state) cmd_status ;;
+        帮助|help|-h|--help) cmd_help ;;
+        *) cmd_help ;;
     esac
 }
 
-# 运行主函数
 main "$@"
